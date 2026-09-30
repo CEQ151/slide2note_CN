@@ -18,6 +18,8 @@
 \usepackage{tabularx}   % 内容地图等通栏表格用 X 列
 \usepackage{longtable}  % 名词对照等跨页长表
 \usepackage{float}      % [H] 严格定位
+\usepackage{multicol}   % 局部双栏（multicols 环境）
+\usepackage{wrapfig}    % 文字环绕小图（wrapfigure 环境）
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{colortbl}
@@ -312,6 +314,36 @@ T(n) &= 2\,T(n/2) + cn && \text{分治递推式} \\
 \label{fig:NN-pair}
 \end{figure}
 ```
+
+文字环绕小图（`wrapfig`）：宽度 ≤ 半栏的小图配长段文字时用，打破"图占一整行"的单调——
+
+```latex
+% 纪律:环境放在"要环绕它的那段文字"之前;不要紧贴 \section/\subsection 标题
+% (标题后先写一两行正文再插);不要放在页面最后几行(会伸进页边或整体被推走);
+% multicols 内不要使用;宽度一般 0.35--0.5\linewidth
+\begin{wrapfigure}{r}{0.42\linewidth}   % {r|l}{宽度}
+\centering
+\includegraphics[width=\linewidth]{ch03/fig-03-07-pipeline-internal.png}
+\caption{三级流水线(课件第 7 页原图)。}
+\label{fig:NN-wrap}
+\end{wrapfigure}
+被环绕的正文紧跟在环境之后书写\ldots 段落文字会自动沿图侧排布。
+```
+
+局部双栏（`multicols`）：适合并列要点、名词短释、习题列表等"密集短行"内容——
+
+```latex
+\begin{multicols}{2}
+\textbf{要点一}\quad 短行内容\ldots
+
+\textbf{要点二}\quad 短行内容\ldots
+\end{multicols}
+% 禁忌:multicols 内不能用 figure/table 浮动体与 longtable;
+% 插图改用 \begin{center}\includegraphics...\end{center} + \captionof{figure}{...}\label{...}
+% (caption 包提供 \captionof);宽表(tabularx{\textwidth}、longtable)不要包进 multicols
+```
+
+整册双栏：documentclass 保持单栏，封面与目录照常，在正文开始处用 `\twocolumn` 命令切换；此后跨栏大图/宽表用 `figure*` / `table*`（浮动到页顶），普通图按栏宽 `\columnwidth` 控制宽度。图表多且窄的讲义才用整册双栏，否则公式断行与宽表都会难看。
 
 【可选:领域绘图】门级电路重绘骨架（反相输入线头放右上角统一生成，避免线交叉；仅电路类课件需要）：
 
