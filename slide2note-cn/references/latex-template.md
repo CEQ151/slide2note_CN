@@ -1,15 +1,15 @@
 # LaTeX 讲义模板（复制后填充）
 
-导言区取自实际交付中迭代出的"完全体"版本。标记【电路课件】的块只有画门级电路/数据通路时才需要，纯文字/代数类讲义可整块删去。
+导言区取自实际交付中迭代出的"完全体"版本。标记【可选:领域绘图】的块只在课件含专业图形（电路、化工流程、力学示意等）时才需要，纯文字/代数类讲义可整块删去。
 
 ## 完整导言区
 
 ```latex
-\documentclass[11pt,a4paper,fontset=mac]{ctexart}   % 非 macOS 去掉 fontset=mac
+\documentclass[11pt,a4paper,fontset=mac]{ctexart}   % Windows 用 fontset=windows；非 macOS 记得调整此项
 
 % ============================================================
 %  第N讲 标题 课堂讲义
-%  课程名 2026-2027 Fall
+%  <课程名> <学年学期>
 % ============================================================
 \usepackage[margin=2.1cm,top=2.2cm,bottom=2.4cm,headheight=13.5pt]{geometry}
 \usepackage{amsmath,amssymb}
@@ -21,7 +21,7 @@
 \usepackage{array}
 \usepackage{xcolor}
 \usepackage{colortbl}
-% 【电路课件】TikZ / CircuiTikZ（画门级电路、数据通路、知识地图）
+% 【可选:领域绘图】电路类课件用 CircuiTikZ；其他领域按需换 chemfig / mhchem / 自绘 TikZ
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,calc,positioning,decorations.pathreplacing}
 \usepackage[american]{circuitikz}
@@ -50,7 +50,7 @@
 \definecolor{liti}{HTML}{217A3C}    % 例题绿
 \definecolor{sikao}{HTML}{B4530A}   % 思考橙
 \definecolor{jinggao}{HTML}{B02418} % 警示红
-\definecolor{xianlu}{HTML}{1F2937}  % 【电路课件】电路线条色
+\definecolor{xianlu}{HTML}{1F2937}  % 【可选:领域绘图】电路线条色
 
 % ---------- 节标题样式 ----------
 \titleformat{\section}[block]
@@ -96,7 +96,7 @@
 \renewcommand{\headrulewidth}{0.5pt}
 \renewcommand{\headrule}{\color{zhulv!50}\hrule width\headwidth height\headrulewidth}
 
-% ---------- 【电路课件】通用设置与常用宏 ----------
+% ---------- 【可选:领域绘图】电路类通用设置与常用宏 ----------
 \ctikzset{logic ports/scale=0.72}
 \ctikzset{logic ports=ieee}
 \tikzset{
@@ -143,10 +143,10 @@
 \large
 \begin{itemize}[leftmargin=1.6em]
   \item 课程:课程名(中文译名)
-  \item 学期:2026 -- 2027 学年 秋季学期(Fall)
+  \item 学期:XXXX -- XXXX 学年 第X学期(按实际填写)
   \item 主讲:教师名 \quad 文档类型:课堂讲义(Lecture Notes)
   \item 依据:课件《XN Title》全 NN 页逐图精讲
-  \item 绘图:电路图以 TikZ / CircuiTikZ 重新绘制(标准 IEEE 逻辑符号)  % 按实际改
+  \item 绘图:示意图按课件重绘(TikZ,风格统一)  % 按实际改;无重绘图可删此行
 \end{itemize}
 \end{tcolorbox}
 
@@ -220,35 +220,34 @@ Term & 中文 & 用生活类比解释,不抄课件定义。 \\
 
 开篇一两句交代这页课件在讲什么、为什么重要,然后直接讲解:
 
-\begin{dinglibox}[定义:组合电路]
+\begin{dinglibox}[定义:动态规划]
 正式定义写在盒子里,术语加 \textbf{加粗}。
 \end{dinglibox}
 
 讲解正文\ldots
 
 % 课件原图:抠图放灰框白底的 yuanbox,文件名与 images/chNN/ 中的实际文件一致
-\begin{yuanbox}[课件原图:MUX 的"道岔"类比]
-\includegraphics[width=0.86\linewidth]{ch06/fig-06-01-mux-railyard.png}
+\begin{yuanbox}[课件原图:工厂流水线类比]
+\includegraphics[width=0.86\linewidth]{ch03/fig-03-01-assembly-line-analogy.png}
 \end{yuanbox}
 
 重绘版/讲解图与原图成对出现:
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.5\linewidth]{ch06/fig-06-07-mux-2x1-internal.png}
-\caption{内部电路(课件第 7 页原图):一个反相器 + 两个与门 + 一个或门,实现的正是
-化简式 $d=s_0'i_0+s_0 i_1$。}
+\includegraphics[width=0.5\linewidth]{ch03/fig-03-07-pipeline-internal.png}
+\caption{三级流水线结构(课件第 7 页原图):取指、译码、执行逐级传递,与正文推导的式 (3.1) 对应。}
 \label{fig:NN-internal}
 % 图注写法:解释这张图的原理和读法 + 注明课件页码,不逐个罗列画面元素
 \end{figure}
 
-\begin{litibox}[例题:某某]
+\begin{litibox}[例题:递归复杂度分析]
 题目\ldots
 
 \textbf{解:} 分步写,每步给依据:
 \begin{align*}
-F &= \inv{a}b + a\inv{b} && \text{最小项之和} \\
-  &= a \oplus b && \text{XOR 定义}
+T(n) &= 2\,T(n/2) + cn && \text{分治递推式} \\
+     &= O(n\lg n) && \text{主定理,情形 2}
 \end{align*}
 \end{litibox}
 
@@ -282,7 +281,7 @@ F &= \inv{a}b + a\inv{b} && \text{最小项之和} \\
 \begin{sikaobox}[课后自测]
 % 写 5 道左右具体的题,覆盖本讲全部考点、不重复正文原题,可 \ref{} 引用正文图表:
 % (1)基本定义复述;(2)核心推导;(3)改条件变式;(4)易错点辨析;(5)综合应用
-(1)用设计三步法独立推导 2x1 MUX 的电路;(2)若把进位输入 $C_0$ 误接为 1,加法结果会怎样?
+(1)用自己的话解释流水线为什么能提升吞吐率;(2)证明正文中的式 (3.2);(3)若第二级耗时变为原来的两倍,瓶颈如何转移?
 \end{sikaobox}
 
 \vfill
@@ -296,25 +295,25 @@ F &= \inv{a}b + a\inv{b} && \text{最小项之和} \\
 
 ## 高频片段
 
-并列双图（内部电路 + 符号、错/对对比）：
+并列双图（结构详图 + 简化符号、错/对对比）：
 
 ```latex
 \begin{figure}[htbp]
 \centering
 \begin{minipage}[t]{0.52\linewidth}
 \centering
-\includegraphics[width=0.95\linewidth]{ch06/fig-06-09-mux-4x1-internal.png}
+\includegraphics[width=0.95\linewidth]{ch03/fig-03-09-pipeline-detail.png}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.40\linewidth}
 \centering
-\includegraphics[width=0.8\linewidth]{ch06/fig-06-10-mux-4x1-symbol.png}
+\includegraphics[width=0.8\linewidth]{ch03/fig-03-10-pipeline-symbol.png}
 \end{minipage}
-\caption{左:内部电路;右:封装符号(课件第 9 页原图)。}
+\caption{左:结构详图;右:简化符号(课件第 9 页原图)。}
 \label{fig:NN-pair}
 \end{figure}
 ```
 
-【电路课件】门级电路重绘骨架（反相输入线头放右上角统一生成，避免线交叉）：
+【可选:领域绘图】门级电路重绘骨架（反相输入线头放右上角统一生成，避免线交叉；仅电路类课件需要）：
 
 ```latex
 \begin{figure}[htbp]

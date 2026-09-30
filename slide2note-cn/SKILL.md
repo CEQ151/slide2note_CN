@@ -13,17 +13,18 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
 
 ## 工作流程
 
-### 第 1 步：通读课件
+### 第 1 步：确定输出位置并通读课件
 
-- 用 Read 分段读完课件 PDF 全部页面（每次不超过 20 页），记下：总页数、模块划分与各模块页码范围、重要插图清单。
-- 重要图 = 类比示意图、内部电路/结构图、带标注的真值表、应用实例图。**纯文字型幻灯片不抠图**，用排版后的文字与公式表达即可。
-- 需要抠图时调用 `pdf-figure-extractor` 技能；裁剪前先读 `references/figure-extraction.md`，里面有第一轮返工率高达一半才换来的实测守则。
+- **先定输出根目录**：默认用课件 PDF 所在目录下的 `AI Notes/`（内含 `tex/`、`pdf/`、`images/` 三个子目录）；若用户已有自己的笔记目录或指定了位置，以用户为准。目录不存在时先 `mkdir -p`，下文路径均相对该根目录。
+- 环境自检：`xelatex` 可用（TeX 发行版）、Python 有 `pymupdf`/`Pillow`/`numpy`（抠图脚本依赖）；缺了先提示安装再动手。
+- 用 Read 分段读完课件 PDF 全部页面（每次不超过 20 页），记下：总页数、模块划分与各模块页码范围、所有插图清单。
+- 重要图 = 类比示意图、内部结构图、带标注的图表、应用实例图。**纯文字型幻灯片不抠图**，用排版后的文字与公式表达即可。
+- 需要抠图时使用本技能自带的 `scripts/safe_crop.py`；裁剪前先读 `references/figure-extraction.md`（方法论 + 实测踩坑守则 + 脚本用法）。
 
 ### 第 2 步：抠图
 
-- 下文路径均相对课程工作区根目录（即包含 `AI Notes/` 的那一层）；若当前目录已在 `AI Notes` 内则去掉前缀。`tex/`、`pdf/`、`images/chNN/` 不存在时先 `mkdir -p`。
-- 插图输出到课程工作区的 `AI Notes/images/chNN/`（chNN 为讲次两位数，如 ch06），命名 `fig-NN-页-slug.png`：NN 是图序号、页是课件页码、slug 是英文短名，如 `fig-06-07-mux-2x1-internal.png`。
-- 最终裁剪 350 dpi；每张裁完立即 Read 目检；safe_crop 报的边缘接触 warning 一律当真、逐一排查。
+- 插图输出到 `images/chNN/`（chNN 为讲次两位数，如 ch03），命名 `fig-NN-页-slug.png`：NN 是图序号、页是课件页码、slug 是英文短名，如 `fig-03-07-cell-membrane-transport.png`。
+- 最终裁剪 350 dpi；每张裁完立即 Read 目检；safe_crop.py 报的边缘接触 warning（退出码 1）一律当真、逐一排查。
 
 ### 第 3 步：编写 LaTeX 讲义
 
@@ -34,7 +35,7 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
   2. **目录**。
   3. **本讲内容地图**：三列表格（模块 / 课件页 / 核心问题），让读者 30 秒看懂全讲脉络。
   4. **专有名词中英文对照表**：longtable 三列（英文 / 中文翻译 / **大白话解释**），带续表表头。
-  5. **正文讲解**：按课件页序分 `\subsection`，**标题必须标注课件页码**，如 `\subsection{德摩根定律：让"非"穿过括号（P12--P13）}`。
+  5. **正文讲解**：按课件页序分 `\subsection`，**标题必须标注课件页码**，如 `\subsection{细胞呼吸的三个阶段（P12--P13）}`。
   6. **章末小结**：知识清单速查表（yaodbox 内 booktabs 表）+ 课后自测（sikaobox，5 题左右、覆盖本讲全部考点）。
   7. **尾部来源声明**：居中小字，注明依据课件名与页数、图片来源与 dpi、校验方式。
 
@@ -50,7 +51,7 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 ```
 
 - 编译产物（aux/log/toc）留原地，最终 PDF 拷贝到 `AI Notes/pdf/`。
-- 非 macOS 环境记得去掉 documentclass 的 `fontset=mac` 选项。
+- 非 macOS 环境记得调整 documentclass 的 `fontset` 选项（Windows 用 `fontset=windows`，Linux 视发行版），详见模板文件。
 
 ### 第 5 步：视觉审查（不可跳过）
 
@@ -88,14 +89,15 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 ## 图注与插图规范
 
 - 图注小字、自动编号"图 N"，内容是**解释这张图讲什么原理、怎么读**，并注明课件页码（如"课件第 8 页原图"），不是复述画面元素。
-- 相关联的图（内部电路 + 符号、错误做法 + 正确做法对比）用 `minipage` 并排，各设合适宽度；整页大图用 `\linewidth`，小图 0.5–0.6。
+- 相关联的图（结构详图 + 简化符号、错误做法 + 正确做法对比）用 `minipage` 并排，各设合适宽度；整页大图用 `\linewidth`，小图 0.5–0.6。
 - 双栏并排时优先 `[htbp]` + minipage，避免 figure 环境互相挤位。
 
 ## 参考文件
 
-- `references/latex-template.md` — 完整导言区（配色/标题样式/彩盒/页眉页脚/电路图宏）+ 全文档骨架 + 各类片段示例，写 tex 前先读。
-- `references/figure-extraction.md` — 抠图实操守则：精确坐标、padding 反向补偿、残字白化、色带处理。
+- `references/latex-template.md` — 完整导言区（配色/标题样式/彩盒/页眉页脚 + 可选的领域绘图宏）+ 全文档骨架 + 各类片段示例，写 tex 前先读。
+- `references/figure-extraction.md` — 抠图方法论与脚本用法：精确坐标、padding 反向补偿、残字白化、色带处理。
 - `references/homework-sheet.md` — 配套课后作业卷的结构与模板（仅用户要求时使用）。
+- `scripts/safe_crop.py` — 高分辨率渲染裁剪脚本（依赖 pymupdf/Pillow/numpy），用法见 figure-extraction.md。
 
 ## 输出语言
 
