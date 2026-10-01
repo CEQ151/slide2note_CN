@@ -354,6 +354,26 @@ T(n) &= 2\,T(n/2) + cn && \text{分治递推式} \\
 
 整册双栏：documentclass 保持单栏，封面与目录照常，在正文开始处用 `\twocolumn` 命令切换；此后跨栏大图/宽表用 `figure*` / `table*`（浮动到页顶），普通图按栏宽 `\columnwidth` 控制宽度。图表多且窄的讲义才用整册双栏，否则公式断行与宽表都会难看。
 
+长讲拆分写作（`main.tex` + `secN-*.tex`，subagent 分节并行时用，交付前合并回单文件）——
+
+```latex
+% main.tex：导言区 + 封面/目录之后
+\begin{document}
+% ...封面 titlepage、\tableofcontents...
+\input{sec1-intro}
+\input{sec2-mux}
+% ...
+\end{document}
+
+% secN-xxx.tex：只含正文，从 \section 开始，文件名=序号-模块短名
+% 硬纪律:禁止出现任何导言区指令(\usepackage/\definecolor/\newtcolorbox/
+% \newcommand 一律不许);只用主模板已定义的环境与宏
+\section{模块标题}
+\subsection{小节标题（P12--P13）}
+```
+
+给写作 subagent 的 brief 四要素：① 本节页码范围与节间边界（上一节已讲的不得重复）；② 本节台账条目（图已抠好、含最终文件名）；③ 定稿名词对照表；④ 上面的输出纪律。汇编后、编译前，编排者必须通读全册做衔接 pass（过渡、去重、口吻一致）。
+
 【可选:领域绘图】门级电路重绘骨架（反相输入线头放右上角统一生成，避免线交叉；仅电路类课件需要）：
 
 ```latex
