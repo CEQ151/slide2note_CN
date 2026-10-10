@@ -409,3 +409,24 @@ out = Path("render"); out.mkdir(exist_ok=True)
 for i, page in enumerate(doc, 1):
     page.get_pixmap(dpi=110).save(out / f"pg{i:02d}.png")
 ```
+
+## 体积硬门与降载阶梯（交付红线 5MB）
+
+成品 PDF 受 Obsidian 同步限制，**5MB 是绝对红线**（超限禁止交付），4.5MB 起触发降载。编译后立即查体积（在 `AI Notes/tex/` 下）：
+
+```bash
+python -c "import os; s=os.path.getsize('第N讲-标题.pdf'); print(f'{s/1048576:.2f} MB')"
+```
+
+超限降载用自带脚本 `scripts/shrink_images.py`（依赖 Pillow；路径相对本技能目录）逐档压图，**只压不删**，每档跑完重编译再查，禁止跳档：
+
+```bash
+python "<技能目录>/scripts/shrink_images.py" "../images"                    # 档1: 256色量化+optimize(白底教学图近乎无损)
+python "<技能目录>/scripts/shrink_images.py" "../images" --downscale 2000   # 档2: 最长边降到2000px再量化
+python "<技能目录>/scripts/shrink_images.py" "../images" --downscale 1600   # 档3
+```
+
+- 档 1 量化对白底线条/图表类教学图视觉近乎无损；档 2/3 降采样后全宽显示仍有 ~300+ dpi，不影响阅读。
+- `--dry-run` 只报告各图可节省多少，不动文件；重编码不小于原文件的图会自动跳过。
+- **画质兜底**：降载后视觉审查若发现某张插图劣化（模糊、色带、噪点），按第 1 步图片台账记录的 bbox 用 `safe_crop.py` 单独重抠该图替换（可适当降 `--dpi`，如 250），再重编译复查体积。
+- 三档压完仍超 5MB：如实向用户报告体积与权衡方案（如拆分上下册），严禁删图、删内容凑体积。

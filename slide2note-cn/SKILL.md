@@ -38,6 +38,7 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
 - 按第 1 步的台账逐条执行：处置列为"抠图/重绘"的教学图全部完成，台账就是工作清单。
 - 插图输出到 `images/chNN/`（chNN 为讲次两位数，如 ch03），命名 `fig-NN-页-slug.png`：NN 是图序号、页是课件页码、slug 是英文短名，如 `fig-03-07-cell-membrane-transport.png`。
 - 最终裁剪 350 dpi；每张裁完立即 Read 目检；safe_crop.py 报的边缘接触 warning（退出码 1）一律当真、逐一排查。
+- 体积意识：抠图一律按 350 dpi 最高质量出图，禁止在源头降 dpi 或降质来省体积——PDF 体积由第 4 步编译后的体积硬门统一管控。
 
 ### 第 3 步：编写 LaTeX 讲义
 
@@ -71,18 +72,24 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 ```
 
 - 编译产物（aux/log/toc）留原地，最终 PDF 拷贝到 `AI Notes/pdf/`。
+- **体积硬门（编译后立即执行，不可跳过）**：
+  `python -c "import os; s=os.path.getsize('第N讲-标题.pdf'); print(f'{s/1048576:.2f} MB')"`
+  - ≤ 4.5MB：通过，进第 5 步。
+  - > 4.5MB：逐档压图降载，每档跑完**重编译再查**，禁止跳档——档 1 量化：`python "<技能目录>/scripts/shrink_images.py" "../images"`；档 2：加 `--downscale 2000`；档 3：加 `--downscale 1600`（脚本与阶梯细节见 `references/latex-template.md` 编译与交付节）。
+  - **5MB 是绝对红线**（Obsidian 同步限制）：超限 PDF 禁止交付；三档压完仍超限时如实向用户报告体积与权衡方案，严禁删图、删内容、砍页面凑体积。
 - 非 macOS 环境记得调整 documentclass 的 `fontset` 选项（Windows 用 `fontset=windows`，Linux 视发行版），详见模板文件。
 
 ### 第 5 步：视觉审查（不可跳过）
 
-- 用 pymupdf 把成品 PDF 渲染为逐页 PNG（脚本见 `references/latex-template.md` 末尾；pdftoppm 可用时也可替代），然后派发视觉审查子 agent——环境里有 `pdf:visual-judge` 就用它，否则用任意能读图的通用 Agent——在任务描述里附上检查清单，逐页检查：插图无截断无残字、**图片宽度合适（无"整页仅一图无正文"的版面）**、表格不溢出页边、公式无 Overfull 乱排、彩盒不跨页断裂、页眉页脚正常。
+- 用 pymupdf 把成品 PDF 渲染为逐页 PNG（脚本见 `references/latex-template.md` 末尾；pdftoppm 可用时也可替代），然后派发视觉审查子 agent——环境里有 `pdf:visual-judge` 就用它，否则用任意能读图的通用 Agent——在任务描述里附上检查清单，逐页检查：插图无截断无残字、**图片宽度合适（无"整页仅一图无正文"的版面）**、表格不溢出页边、公式无 Overfull 乱排、彩盒不跨页断裂、页眉页脚正常、压过的插图无肉眼可见劣化（模糊/色带/噪点）。
 - **覆盖率核对（零漏图门槛）**：把第 1 步的图片台账一并交给审查子 agent，逐页核对"课件图 → 讲义图/豁免理由"一一对应；发现漏图、漏讲解（只有图没有配文）、或台账外多出的图，一律打回补齐后重审。
+- **体积复核**：凡是走过降载阶梯的讲义，交付前再查一次 PDF 体积，确认 ≤ 5MB；审查发现某张插图劣化时，按 `references/latex-template.md` 编译与交付节的兜底流程单独重抠该图。
 - 对照课件 PDF 复核讲义中的数值、真值表、定理编号。
 - 按审查报告逐条修正，重编译重渲染，直到全部页面通过才算完成。
 
 ### 第 6 步：交付
 
-- 汇报：PDF 路径、页数、插图情况（课件图片总数 / 收录并讲解数 / 豁免数及理由，数字对齐台账）、审查结论、与课件的页码对应关系。
+- 汇报：PDF 路径、页数、PDF 体积（X.XX MB，须 ≤ 5MB）、插图情况（课件图片总数 / 收录并讲解数 / 豁免数及理由，数字对齐台账）、审查结论、与课件的页码对应关系。
 - tex 源码与插图路径一并告知，方便用户后续改版。
 
 ## 排版硬规则（红线）
@@ -92,6 +99,7 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 - **不逐字重述课件**：禁止"页面内容"式的复述引用块，每个小节直接讲解——讲清楚"是什么、为什么、怎么用"，而不是翻译幻灯片。
 - **表格规范**：booktabs 三线表、表头齐全、列数一致；长表用 longtable 带续表头。
 - **忠实标注**：课件留白的表补答案时标"解答/按方程求得"；课件之外的扩展内容标"补充"。
+- **交付 PDF ≤ 5MB**（Obsidian 同步硬限制）：超限只允许压图降载（第 4 步体积硬门的阶梯），严禁删图、删内容、砍页面凑体积；配套作业卷 PDF 同样受限。
 - hyperref 最后加载；图一律 `\graphicspath{{../images/}}` + 相对路径引用。
 
 ## 语义彩盒体系
@@ -138,6 +146,7 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 - `references/figure-extraction.md` — 抠图方法论与脚本用法：精确坐标、padding 反向补偿、残字白化、色带处理。
 - `references/homework-sheet.md` — 配套课后作业卷的结构与模板（仅用户要求时使用）。
 - `scripts/safe_crop.py` — 高分辨率渲染裁剪脚本（依赖 pymupdf/Pillow/numpy），用法见 figure-extraction.md。
+- `scripts/shrink_images.py` — PNG 批量压图脚本（量化 + 可选降采样，依赖 Pillow），PDF 超 5MB 时的降载阶梯用，用法见 latex-template.md 编译与交付节。
 
 ## 输出语言
 
