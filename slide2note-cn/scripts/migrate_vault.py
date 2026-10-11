@@ -39,7 +39,7 @@ WS_NAME = "_slide2note"
 LEGACY_NAME = "_legacy"
 DELIVERY_NAME = "AI Notes"
 
-SKIP_TOPLEVEL = {"Inbox", "Last year", "Icon"}      # vault 级非课程目录
+SKIP_TOPLEVEL = {"Inbox", "Last year", "Icon", "ENGR1010J_TA"}  # ENGR1010J_TA: 用户自己的 TA 工作区，非 AI 产物，整目录不动
 NEVER_PRUNE = {".git", ".obsidian", ".trash", ".workbuddy"}
 
 BUILD_SUFFIXES = (".aux", ".log", ".toc", ".out", ".synctex.gz", ".fls", ".fdb_latexmk")
@@ -96,6 +96,8 @@ class Plan:
 
     def _claim(self, src: Path, dst: Path) -> Path | None:
         """Register src->dst with sha dedup + conflict rename. None = skip."""
+        if src == dst:
+            return None  # 文件已在目标位（如已平铺的成品 PDF），原地保留，绝不删除
         sha = file_sha(src)
         existing = self._claimed.get(dst)
         if existing is None and dst.is_file():
@@ -112,6 +114,10 @@ class Plan:
                     self.conflicts.append((src, dst, cand))
                     self._claimed[cand] = sha
                     return cand
+                if cand not in self._claimed and cand.is_file() and file_sha(cand) == sha:
+                    # 改名候选位已有同内容文件（两库合并典型情况）：按重复清理源
+                    self.dedup_skipped.append((src, cand))
+                    return None
             return None
         self._claimed[dst] = sha
         return dst
@@ -152,7 +158,7 @@ def classify_dir(child: Path) -> str:
         return "skip"
     if name == ".zcode":
         return "delete"
-    if name in {"render", "_render"}:
+    if "render" in name.lower():
         files = dir_files(child)
         if files and all(RENDER_FILE_RE.match(p.name) for p in files):
             return "delete"
@@ -188,6 +194,9 @@ def classify_file(fp: Path, rel_dir_parts, course_dir: Path,
 
     if name == ".zcodeignore" or name.endswith(BUILD_SUFFIXES) or PROBE_FILE_RE.match(name):
         plan.add_delete(fp)
+        return
+    if ai and name.lower().startswith("_tmp_"):
+        plan.add_delete(fp)  # 临时探查/渲染/平文本阅读版（_tmp_c07_plain.pdf、_tmp_z_*.png 等）
         return
     if suffix == ".py":  # 一次性脚本（crop_final.py / rebuild_vault.py 之类）
         plan.add_legacy_file(fp, legacy_course / rel)
@@ -290,7 +299,7 @@ def rewrite_links(vault: Path, apply: bool) -> list[tuple[Path, int]]:
     changed: list[tuple[Path, int]] = []
     for dirpath, dirnames, filenames in os.walk(vault):
         dirnames[:] = [d for d in dirnames
-                       if d not in {WS_NAME, ".obsidian", ".trash", ".workbuddy", ".git"}]
+                       if d not in {WS_NAME, ".obsidian", ".trash", ".workbuddy", ".zcode", ".git"}]
         for f in filenames:
             if not f.lower().endswith(".md"):
                 continue
