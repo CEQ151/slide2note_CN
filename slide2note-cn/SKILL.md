@@ -39,6 +39,7 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
 - 插图输出到 `images/chNN/`（chNN 为讲次两位数，如 ch03），命名 `fig-NN-页-slug.png`：NN 是图序号、页是课件页码、slug 是英文短名，如 `fig-03-07-cell-membrane-transport.png`。
 - 最终裁剪 350 dpi；每张裁完立即 Read 目检；safe_crop.py 报的边缘接触 warning（退出码 1）一律当真、逐一排查。
 - 体积意识：抠图一律按 350 dpi 最高质量出图，禁止在源头降 dpi 或降质来省体积——PDF 体积由第 4 步编译后的体积硬门统一管控。
+- 输出卫生：裁剪永远写台账定下的最终文件名（同名覆盖，不攒 `fig-xxx-v2` 之类的废稿）；调 bbox 用的低分辨率探查渲染放系统临时目录，禁止落进 `images/`——孤儿图的清理交给第 6 步。
 
 ### 第 3 步：编写 LaTeX 讲义
 
@@ -71,7 +72,7 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"
 xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二遍生成目录与交叉引用
 ```
 
-- 编译产物（aux/log/toc）留原地，最终 PDF 拷贝到 `AI Notes/pdf/`。
+- 最终 PDF 拷贝到 `AI Notes/pdf/`；编译产物（aux/log/toc 等）先留原地，由第 6 步清理收尾统一处理。
 - **体积硬门（编译后立即执行，不可跳过）**：
   `python -c "import os; s=os.path.getsize('第N讲-标题.pdf'); print(f'{s/1048576:.2f} MB')"`
   - ≤ 4.5MB：通过，进第 5 步。
@@ -87,10 +88,11 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 - 对照课件 PDF 复核讲义中的数值、真值表、定理编号。
 - 按审查报告逐条修正，重编译重渲染，直到全部页面通过才算完成。
 
-### 第 6 步：交付
+### 第 6 步：清理收尾与交付
 
-- 汇报：PDF 路径、页数、PDF 体积（X.XX MB，须 ≤ 5MB）、插图情况（课件图片总数 / 收录并讲解数 / 豁免数及理由，数字对齐台账）、审查结论、与课件的页码对应关系。
-- tex 源码与插图路径一并告知，方便用户后续改版。
+- **清理收尾（交付前必做）**：视觉审查与体积硬门全部通过后，用 `scripts/cleanup.py` 收拾输出目录——先默认 dry-run 看清单，确认无误再加 `--apply` 执行；它会删编译产物（aux/log/toc 等）、视觉审查渲染图（`tex/render/`）、合并后遗留的 `main.tex`/`secN-*.tex` 脚手架、`images/` 里未被最终 tex 引用的孤儿图（用法见 `references/latex-template.md` 编译与交付节）。
+- 汇报：PDF 路径、页数、PDF 体积（X.XX MB，须 ≤ 5MB）、插图情况（课件图片总数 / 收录并讲解数 / 豁免数及理由，数字对齐台账）、审查结论、与课件的页码对应关系、清理结果（删了哪些类别、各多少项）。
+- tex 源码与插图路径一并告知，方便用户后续改版。交付后 `AI Notes/` 应只剩 `tex/*.tex`、`pdf/*.pdf`、`images/` 中被引用的插图，最终目录树随交付报告展示。
 
 ## 排版硬规则（红线）
 
@@ -147,6 +149,7 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 - `references/homework-sheet.md` — 配套课后作业卷的结构与模板（仅用户要求时使用）。
 - `scripts/safe_crop.py` — 高分辨率渲染裁剪脚本（依赖 pymupdf/Pillow/numpy），用法见 figure-extraction.md。
 - `scripts/shrink_images.py` — PNG 批量压图脚本（量化 + 可选降采样，依赖 Pillow），PDF 超 5MB 时的降载阶梯用，用法见 latex-template.md 编译与交付节。
+- `scripts/cleanup.py` — 输出目录收尾清理脚本（删编译产物/审查渲染图/脚手架/孤儿图，默认 dry-run、`--apply` 才执行），第 6 步清理收尾用，用法见 latex-template.md 编译与交付节。
 
 ## 输出语言
 

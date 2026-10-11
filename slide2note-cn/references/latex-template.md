@@ -430,3 +430,17 @@ python "<技能目录>/scripts/shrink_images.py" "../images" --downscale 1600   
 - `--dry-run` 只报告各图可节省多少，不动文件；重编码不小于原文件的图会自动跳过。
 - **画质兜底**：降载后视觉审查若发现某张插图劣化（模糊、色带、噪点），按第 1 步图片台账记录的 bbox 用 `safe_crop.py` 单独重抠该图替换（可适当降 `--dpi`，如 250），再重编译复查体积。
 - 三档压完仍超 5MB：如实向用户报告体积与权衡方案（如拆分上下册），严禁删图、删内容凑体积。
+
+## 清理收尾（cleanup.py，交付前）
+
+第 6 步交付前把输出目录收拾干净。默认 dry-run 只打印删除清单，确认无误后加 `--apply` 才真删（在 `AI Notes/tex/` 下执行，参数是输出根目录）：
+
+```bash
+python "<技能目录>/scripts/cleanup.py" ".."            # dry-run：先看清单
+python "<技能目录>/scripts/cleanup.py" ".." --apply    # 执行清理并打印最终目录树
+```
+
+- 删除对象四类：`tex/` 下的编译产物（`aux/log/toc/out/synctex.gz/fls/fdb_latexmk`）、审查渲染目录 `tex/render/`、未被任何交付 tex `\input` 的 `main.tex`/`secN-*.tex` 脚手架、`images/` 里未被 `\includegraphics` 引用的孤儿 PNG。
+- 交付 tex 自动识别：`tex/` 下除 `main.tex` 与 `sec\d+-*.tex` 外的 `.tex`（作业卷也在内）；分册未合并（交付 tex 仍 `\input` 脚手架）时脚手架自动保留；只有脚手架没有交付 tex 时报错，此时用 `--tex tex/xxx.tex` 显式指定。
+- 安全边界：交付 tex、`pdf/`、被引用的插图永不删；必须在审查通过与体积达标之后跑（孤儿判定以最终 tex 的实际引用为准）。
+- 清理后 `AI Notes/` 只剩 `tex/*.tex`、`pdf/*.pdf`、`images/` 中被引用的插图，目录树随交付报告展示。
