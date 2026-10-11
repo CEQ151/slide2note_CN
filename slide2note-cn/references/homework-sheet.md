@@ -1,6 +1,6 @@
 # 配套课后作业卷模板
 
-仅在用户要求"配一份作业/练习卷"时使用。独立 tex → 独立 PDF：`AI Notes/tex/homework-tN.tex` → `AI Notes/pdf/第N讲-课后作业.pdf`。
+仅在用户要求"配一份作业/练习卷"时使用。独立 tex → 独立 PDF：`<工作区>/tex/homework-tN.tex` → 平铺进交付根 `<课程>/AI Notes/第N讲-课后作业.pdf`。
 
 ## 结构（顺序固定）
 

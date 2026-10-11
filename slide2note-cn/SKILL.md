@@ -15,10 +15,15 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
 
 ### 第 1 步：确定输出位置并通读课件
 
-- **先定输出根目录**：默认用课件 PDF 所在目录下的 `AI Notes/`（内含 `tex/`、`pdf/`、`images/` 三个子目录）；若用户已有自己的笔记目录或指定了位置，以用户为准。目录不存在时先 `mkdir -p`，下文路径均相对该根目录。
+- **先定双根：构建根（工作区）与交付根**，二者职责严格分离：
+  - 定位 vault：从课件 PDF 所在目录逐级向上找含 `.obsidian/` 的目录即 vault 根；课件 PDF 在 vault 下的第一级子目录即**课程文件夹**。下文用 `<工作区>`、`<课程>` 指代两根。
+  - **构建根 `<工作区>` = `<vault>/_slide2note/<课程名>/`**，内含 `tex/`、`images/`（下分 `chNN/`）、`render/`、`pages/`、`notes/` 五个子目录——一切中间产物（tex 源、图片切片、审查渲染、课件整页渲染、图片台账、md 草稿、一次性脚本）**只落这里**。课件不在任何 vault 内时回退：`<工作区>` = `<课件PDF所在目录>/_slide2note/`，`<课程>` = 课件 PDF 所在目录。
+  - **交付根 = `<课程>/AI Notes/`**：只平铺存放最终成品 PDF（讲义与作业卷），无子目录、无非 PDF 文件；用户另有指定的交付位置时以用户为准。
+  - **首次忽略自检（防同步抢跑）**：首次在某 vault 创建 `_slide2note/` 之前，必须确认它已被同步与索引双双排除——`.obsidian/sync.json` 的 `excludedFiles` 数组含 `"_slide2note/"`，且 `.obsidian/app.json` 的 `userIgnoreFilters` 数组含 `"_slide2note/"`；缺哪项就用 JSON 合并补写哪项（保留其余键值），并请用户**完全退出并重启 Obsidian** 后再继续（Obsidian 运行中改配置会被内存态覆盖）。忽略未确认生效前，禁止往工作区写入任何文件，防止同步服务把几百张切片图传上云。
+  - 两根目录不存在时先 `mkdir -p`。
 - 环境自检：`xelatex` 可用（TeX 发行版）、Python 有 `pymupdf`/`Pillow`/`numpy`（抠图脚本依赖）；缺了先提示安装再动手。
 - 用 Read 分段读完课件 PDF 全部页面（每次不超过 20 页），记下：总页数、模块划分与各模块页码范围。
-- **建立全册图片台账**：逐页登记课件里每一张图/图形元素，一张不漏。这是后续抠图、写作、审查三环节共同的"零漏图"契约，必须先于抠图完成：
+- **建立全册图片台账**：逐页登记课件里每一张图/图形元素，一张不漏。这是后续抠图、写作、审查三环节共同的"零漏图"契约，必须先于抠图完成（台账落盘到 `<工作区>/notes/ledger-tN.md`，禁止散落在课程文件夹）：
 
   | 课件页 | 图片内容 | 类型 | 处置 |
   |---|---|---|---|
@@ -36,14 +41,14 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
 ### 第 2 步：抠图
 
 - 按第 1 步的台账逐条执行：处置列为"抠图/重绘"的教学图全部完成，台账就是工作清单。
-- 插图输出到 `images/chNN/`（chNN 为讲次两位数，如 ch03），命名 `fig-NN-页-slug.png`：NN 是图序号、页是课件页码、slug 是英文短名，如 `fig-03-07-cell-membrane-transport.png`。
+- 插图输出到 `<工作区>/images/chNN/`（chNN 为讲次两位数，如 ch03），命名 `fig-NN-页-slug.png`：NN 是图序号、页是课件页码、slug 是英文短名，如 `fig-03-07-cell-membrane-transport.png`。
 - 最终裁剪 350 dpi；每张裁完立即 Read 目检；safe_crop.py 报的边缘接触 warning（退出码 1）一律当真、逐一排查。
 - 体积意识：抠图一律按 350 dpi 最高质量出图，禁止在源头降 dpi 或降质来省体积——PDF 体积由第 4 步编译后的体积硬门统一管控。
-- 输出卫生：裁剪永远写台账定下的最终文件名（同名覆盖，不攒 `fig-xxx-v2` 之类的废稿）；调 bbox 用的低分辨率探查渲染放系统临时目录，禁止落进 `images/`——孤儿图的清理交给第 6 步。
+- 输出卫生：裁剪永远写台账定下的最终文件名（同名覆盖，不攒 `fig-xxx-v2` 之类的废稿）；调 bbox 用的低分辨率探查渲染放系统临时目录，禁止落进 `images/`；课件整页预渲染（通读、调坐标用）放 `<工作区>/pages/`，禁止在课程文件夹里另起 `_courseware_pages*` 之类的目录——孤儿图与整页渲染的清理交给第 6 步。
 
 ### 第 3 步：编写 LaTeX 讲义
 
-- 位置：`AI Notes/tex/第N讲-标题.tex`。完整导言区与骨架见 `references/latex-template.md`，直接复制后填充，不要从零发明模板。
+- 位置：`<工作区>/tex/第N讲-标题.tex`。完整导言区与骨架见 `references/latex-template.md`，直接复制后填充，不要从零发明模板。
 - 文档骨架（各节顺序固定）：
 
   1. **封面 titlepage**：讲号 + 中英双语标题 + 信息盒（课程、学期、依据课件、绘图说明）+ TikZ 知识地图（模块节点与箭头拓扑）。
@@ -67,12 +72,13 @@ description: 把课件 PDF（幻灯片）制作成排版精良的中文 LaTeX �
 ### 第 4 步：编译
 
 ```bash
-cd "AI Notes/tex"
+cd "<工作区>/tex"
 xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"
 xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二遍生成目录与交叉引用
+cp "第N讲-标题.pdf" "<课程>/AI Notes/"   # 成品 PDF 直接平铺进交付根（同名覆盖旧版）
 ```
 
-- 最终 PDF 拷贝到 `AI Notes/pdf/`；编译产物（aux/log/toc 等）先留原地，由第 6 步清理收尾统一处理。
+- 最终 PDF 复制到交付根 `<课程>/AI Notes/`（平铺）；编译产物（aux/log/toc 等）先留工作区原地，由第 6 步清理收尾统一处理。
 - **体积硬门（编译后立即执行，不可跳过）**：
   `python -c "import os; s=os.path.getsize('第N讲-标题.pdf'); print(f'{s/1048576:.2f} MB')"`
   - ≤ 4.5MB：通过，进第 5 步。
@@ -82,7 +88,7 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 
 ### 第 5 步：视觉审查（不可跳过）
 
-- 用 pymupdf 把成品 PDF 渲染为逐页 PNG（脚本见 `references/latex-template.md` 末尾；pdftoppm 可用时也可替代），然后派发视觉审查子 agent——环境里有 `pdf:visual-judge` 就用它，否则用任意能读图的通用 Agent——在任务描述里附上检查清单，逐页检查：插图无截断无残字、**图片宽度合适（无"整页仅一图无正文"的版面）**、表格不溢出页边、公式无 Overfull 乱排、彩盒不跨页断裂、页眉页脚正常、压过的插图无肉眼可见劣化（模糊/色带/噪点）。
+- 用 pymupdf 把成品 PDF 渲染为逐页 PNG 到 `<工作区>/render/`（脚本见 `references/latex-template.md` 末尾；pdftoppm 可用时也可替代），然后派发视觉审查子 agent——环境里有 `pdf:visual-judge` 就用它，否则用任意能读图的通用 Agent——在任务描述里附上检查清单，逐页检查：插图无截断无残字、**图片宽度合适（无"整页仅一图无正文"的版面）**、表格不溢出页边、公式无 Overfull 乱排、彩盒不跨页断裂、页眉页脚正常、压过的插图无肉眼可见劣化（模糊/色带/噪点）。
 - **覆盖率核对（零漏图门槛）**：把第 1 步的图片台账一并交给审查子 agent，逐页核对"课件图 → 讲义图/豁免理由"一一对应；发现漏图、漏讲解（只有图没有配文）、或台账外多出的图，一律打回补齐后重审。
 - **体积复核**：凡是走过降载阶梯的讲义，交付前再查一次 PDF 体积，确认 ≤ 5MB；审查发现某张插图劣化时，按 `references/latex-template.md` 编译与交付节的兜底流程单独重抠该图。
 - 对照课件 PDF 复核讲义中的数值、真值表、定理编号。
@@ -90,12 +96,13 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 
 ### 第 6 步：清理收尾与交付
 
-- **清理收尾（交付前必做）**：视觉审查与体积硬门全部通过后，用 `scripts/cleanup.py` 收拾输出目录——先默认 dry-run 看清单，确认无误再加 `--apply` 执行；它会删编译产物（aux/log/toc 等）、视觉审查渲染图（`tex/render/`）、合并后遗留的 `main.tex`/`secN-*.tex` 脚手架、`images/` 里未被最终 tex 引用的孤儿图（用法见 `references/latex-template.md` 编译与交付节）。
+- **清理收尾（交付前必做）**：视觉审查与体积硬门全部通过后，用 `scripts/cleanup.py` 收拾**工作区**——先默认 dry-run 看清单，确认无误再加 `--apply` 执行；它会删工作区里的编译产物（aux/log/toc 等）、视觉审查渲染图（`render/`）、课件整页渲染（`pages/`）、合并后遗留的 `main.tex`/`secN-*.tex` 脚手架、`images/` 里未被最终 tex 引用的孤儿图（用法见 `references/latex-template.md` 编译与交付节）。它只动工作区，永不触碰交付根。
 - 汇报：PDF 路径、页数、PDF 体积（X.XX MB，须 ≤ 5MB）、插图情况（课件图片总数 / 收录并讲解数 / 豁免数及理由，数字对齐台账）、审查结论、与课件的页码对应关系、清理结果（删了哪些类别、各多少项）。
-- tex 源码与插图路径一并告知，方便用户后续改版。交付后 `AI Notes/` 应只剩 `tex/*.tex`、`pdf/*.pdf`、`images/` 中被引用的插图，最终目录树随交付报告展示。
+- tex 源码与插图路径（均在 `<工作区>` 下）一并告知，方便用户后续改版。**交付断言**：`<课程>/AI Notes/` 内只有平铺的成品 PDF，课程文件夹内无任何散落 AI 中间产物——用 `python "<技能目录>/scripts/cleanup.py" --check "<课程文件夹>"` 验证通过，最终目录树（交付根 + 工作区）随交付报告展示。
 
 ## 排版硬规则（红线）
 
+- **输出地界（红线）**：课程文件夹内禁止写入任何非 PDF 文件——tex、切片、渲染图、台账、草稿、一次性脚本一律只落 `<工作区>`；`AI Notes/` 是纯 PDF 交付区，禁止在其中建子目录或放中间产物；工作区必须处于同步排除状态（首次忽略自检见第 1 步），交付前复核一次。
 - **公式全部用 LaTeX**（`$...$` / `\[...\]` / `align*`），图注和表格里也**不许出现 Unicode 上下标**（写 $A'$ 不写 A′，写 $2^N$ 不写 2ⁿ）。
 - **禁止用代码框**（verbatim/lstlisting）包裹公式或算式。
 - **不逐字重述课件**：禁止"页面内容"式的复述引用块，每个小节直接讲解——讲清楚"是什么、为什么、怎么用"，而不是翻译幻灯片。
@@ -149,7 +156,8 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 - `references/homework-sheet.md` — 配套课后作业卷的结构与模板（仅用户要求时使用）。
 - `scripts/safe_crop.py` — 高分辨率渲染裁剪脚本（依赖 pymupdf/Pillow/numpy），用法见 figure-extraction.md。
 - `scripts/shrink_images.py` — PNG 批量压图脚本（量化 + 可选降采样，依赖 Pillow），PDF 超 5MB 时的降载阶梯用，用法见 latex-template.md 编译与交付节。
-- `scripts/cleanup.py` — 输出目录收尾清理脚本（删编译产物/审查渲染图/脚手架/孤儿图，默认 dry-run、`--apply` 才执行），第 6 步清理收尾用，用法见 latex-template.md 编译与交付节。
+- `scripts/cleanup.py` — 工作区收尾清理脚本（删编译产物/审查渲染图/整页渲染/脚手架/孤儿图，默认 dry-run、`--apply` 才执行；另支持 `--check <课程文件夹>` 验证"AI Notes 纯 PDF、课程文件夹无散落 AI 产物"的交付断言），第 6 步清理收尾用，用法见 latex-template.md 编译与交付节。
+- `scripts/migrate_vault.py` — 存量库一次性整理脚本：把本制度施行前散落在各课程文件夹里的旧产物迁入 `_slide2note/` 工作区、成品 PDF 平铺进各课 `AI Notes/`、灰色文件归档 `_legacy/`，并改写笔记里的旧 PDF 链接；默认 dry-run，确认清单后 `--apply`。仅当用户要求整理存量课程文件夹时使用。
 
 ## 输出语言
 
