@@ -401,6 +401,12 @@ xelatex -interaction=nonstopmode -halt-on-error "第N讲-标题.tex"   # 第二�
 cp "第N讲-标题.pdf" "<课程>/AI Notes/"    # 平铺进交付根，同名覆盖旧版
 ```
 
+编译成功（体积硬门通过）后立即用 `--aux` 清掉编译产物——递归扫全工作区，只删编译产物；编译失败时保留日志排查，不跑这步：
+
+```bash
+python "<技能目录>/scripts/cleanup.py" ".." --aux --apply
+```
+
 渲染逐页 PNG 供视觉审查（pymupdf，跨平台最稳；输出到工作区顶层 `render/`，不落课程文件夹）：
 
 ```python
@@ -433,19 +439,22 @@ python "<技能目录>/scripts/shrink_images.py" "../images" --downscale 1600   
 - **画质兜底**：降载后视觉审查若发现某张插图劣化（模糊、色带、噪点），按第 1 步图片台账记录的 bbox 用 `safe_crop.py` 单独重抠该图替换（可适当降 `--dpi`，如 250），再重编译复查体积。
 - 三档压完仍超 5MB：如实向用户报告体积与权衡方案（如拆分上下册），严禁删图、删内容凑体积。
 
-## 清理收尾（cleanup.py，交付前）
+## 清理收尾与命名整理（cleanup.py）
 
-第 6 步交付前把**工作区**收拾干净。默认 dry-run 只打印删除清单，确认无误后加 `--apply` 才真删（在 `<工作区>/tex/` 下执行，参数是工作区根）：
+cleanup.py 是工作区卫生的唯一入口，四种模式全部默认 dry-run，确认清单后加 `--apply` 才执行（在 `<工作区>/tex/` 下执行，参数是工作区根）：
 
 ```bash
-python "<技能目录>/scripts/cleanup.py" ".."            # dry-run：先看清单
-python "<技能目录>/scripts/cleanup.py" ".." --apply    # 执行清理并打印最终目录树
+python "<技能目录>/scripts/cleanup.py" ".."                   # 默认：交付前全面清理
+python "<技能目录>/scripts/cleanup.py" ".." --organize        # 开工初检：命名整理
+python "<技能目录>/scripts/cleanup.py" ".." --aux --apply     # 编译成功后：及时清编译产物
+python "<技能目录>/scripts/cleanup.py" --check "<课程文件夹>"  # 交付断言
 ```
 
-- 删除对象五类：`tex/` 下的编译产物（`aux/log/toc/out/synctex.gz/fls/fdb_latexmk`）、审查渲染目录 `render/`、课件整页渲染目录 `pages/`、未被任何交付 tex `\input` 的 `main.tex`/`secN-*.tex` 脚手架、`images/` 里未被 `\includegraphics` 引用的孤儿 PNG。
-- 交付 tex 自动识别：`tex/` 下除 `main.tex` 与 `sec\d+-*.tex` 外的 `.tex`（作业卷也在内）；分册未合并（交付 tex 仍 `\input` 脚手架）时脚手架自动保留；只有脚手架没有交付 tex 时报错，此时用 `--tex tex/xxx.tex` 显式指定。
-- 安全边界：交付 tex、被引用的插图、以及工作区之外的任何东西（尤其交付根 `AI Notes/`）永不删；必须在审查通过与体积达标之后跑（孤儿判定以最终 tex 的实际引用为准）。
-- 清理后工作区只剩 `tex/*.tex` 与 `images/` 中被引用的插图；交付断言另用 `--check` 验证：`python "<技能目录>/scripts/cleanup.py" --check "<课程文件夹>"`——确认 `AI Notes/` 内只有平铺 PDF、课程文件夹内无散落 AI 中间产物（tex/编译产物/渲染目录/台账等），目录树随交付报告展示。
+- **默认清理**删五类：全工作区递归的编译产物（`aux/log/toc/out/synctex.gz/fls/fdb_latexmk`，含错位编译残留）、审查渲染 `render/`、整页渲染 `pages/`、未被任何交付 tex `\input` 的脚手架、未被引用的孤儿 PNG。
+- **`--organize` 命名整理**（开工初检用）：被引用图的机械级乱命名（大小写、空格/下划线、全角、缺补零、`-v2`/`-final` 等废稿后缀）自动改名并**同步改写 tex 的 `\includegraphics` 引用**；同内容重复图去重；探查/临时垃圾与空目录清除。语义级违规（中文 slug、缺页码、游离 `images/` 根、未被引用的图、交付 tex 未按"第N讲-"命名）只报告不改动，由 agent 按图片台账改名、改写引用并接线。
+- 交付 tex 自动识别：`tex/` 下除 `main.tex` 与 `sec\d+-*.tex` 外的 `.tex`（作业卷也在内）；分册未合并（交付 tex 仍 `\input` 脚手架）时脚手架自动保留；只有脚手架时用 `--tex tex/xxx.tex` 显式指定。
+- 安全边界：交付 tex、被引用插图、工作区之外的一切（尤其交付根 `AI Notes/`）永不删；默认清理必须在审查通过与体积达标后跑（孤儿判定以最终 tex 的实际引用为准）。
+- **交付断言**：`--check "<课程文件夹>"` 确认 `AI Notes/` 只有平铺 PDF、课程文件夹内无散落 AI 中间产物（tex/编译产物/渲染目录/台账等），FAIL 列表逐项修复后重查；目录树随交付报告展示。
 
 ## 存量整理（migrate_vault.py，仅整理旧库时用）
 
